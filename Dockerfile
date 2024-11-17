@@ -1,0 +1,19 @@
+FROM --platform=$BUILDPLATFORM golang:1.23 AS build
+ARG TARGETOS TARGETARCH
+
+WORKDIR /src
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    make build
+
+FROM alpine:edge
+ARG HOME=/app
+
+ENV GODEBUG=netdns=go
+ENV PLUGIN_HOME=$HOME
+
+RUN mkdir -p $HOME && apk add --no-cache ca-certificates git openssh curl git-lfs
+
+COPY --from=build src/release/plugin-git /bin/
+ENTRYPOINT ["/bin/plugin-git"]

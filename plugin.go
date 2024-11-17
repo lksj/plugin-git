@@ -75,15 +75,21 @@ func (p Plugin) Exec() error {
 			// If env var PLUGIN_USE_SSH is set to true, use SSH instead of HTTPS
 			if p.Config.SSHPrivKeyRaw != "" {
 				// If env var PLUGIN_SSH_PRIV_KEY_RAW is set, use it as the SSH private key
-				cmds = append(cmds, loadSSHKeys(p.Config.SSHPrivKeyRaw, "private.key"))
+				if err := loadSSHKeys(p.Config.SSHPrivKeyRaw, "private.key"); err != nil {
+					return err
+				}
 			}
 			if p.Config.SSHPubKeyRaw != "" {
 				// If env var PLUGIN_SSH_PUB_KEY_RAW is set, use it as the SSH public key
-				cmds = append(cmds, loadSSHKeys(p.Config.SSHPubKeyRaw, "public,key"))
+				if err := loadSSHKeys(p.Config.SSHPrivKeyRaw, "public.key"); err != nil {
+					return err
+				}
 			}
 			if p.Config.SSHHostKeyRaw != "" {
 				// If env var PLUGIN_SSH_HOST_PUB_KEY_RAW is set, use it in the known_hosts file
-				cmds = append(cmds, loadSSHKnownHosts(p.Config.SSHHostKeyRaw))
+				if err := loadSSHKnownHosts(p.Config.SSHHostKeyRaw); err != nil {
+					return err
+				}
 			}
 			if p.Config.SSHKey != "" {
 				// If env var PLUGIN_SSH_KEY is set, use it as the SSH key
@@ -403,7 +409,7 @@ func loadSSHKeys(data, filename string) error {
 	if err != nil {
 		return err
 	}
-	err := os.WriteFile(filepath.Join(dirname, filename), []byte(data), 0600)
+	err = os.WriteFile(filepath.Join(dirname, filename), []byte(data), 0600)
 	if err != nil {
 		return err
 	}
@@ -417,7 +423,7 @@ func loadSSHKnownHosts(data string) error {
 		return err
 	}
 	defer f.Close()
-	_, err := f.WriteString(data)
+	_, err = f.WriteString(data)
 	if err != nil {
 		return err
 	}

@@ -155,4 +155,19 @@ var globalFlags = []cli.Flag{
 		Usage:   "SSH key for ssh clone",
 		EnvVars: []string{"PLUGIN_SSH_KEY"},
 	},
+	&cli.StringFlag{
+		Name:    "ssh-priv-key-raw",
+		Usage:   "Private SSH key in base64 for ssh clone",
+		EnvVars: []string{"PLUGIN_SSH_PRIV_KEY_RAW"},
+	},
+	&cli.StringFlag{
+		Name:    "ssh-pub-key-raw",
+		Usage:   "Public SSH key in base64 for ssh clone",
+		EnvVars: []string{"PLUGIN_SSH_PUB_KEY_RAW"},
+	},
+	&cli.StringFlag{
+		Name:    "ssh-host-pub-key-raw",
+		Usage:   "Public SSH key in bas64 for known_hosts",
+		EnvVars: []string{"PLUGIN_SSH_HOST_PUB_KEY_RAW"},
+	},
 }

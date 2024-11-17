@@ -61,6 +61,9 @@ func run(c *cli.Context) error {
 			SafeDirectory:    c.String("safe-directory"),
 			UseSSH:           c.Bool("use-ssh"),
 			SSHKey:           c.String("ssh-key"),
+			SSHPrivKeyRaw:    c.String("ssh-priv-key-raw"),
+			SSHPubKeyRaw:     c.String("ssh-pub-key-raw"),
+			SSHHostKeyRaw:    c.String("ssh-host-pub-key-raw"),
 		},
 		Backoff: Backoff{
 			Attempts: c.Int("backoff-attempts"),

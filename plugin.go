@@ -73,11 +73,23 @@ func (p Plugin) Exec() error {
 		cmds = append(cmds, safeDirectory(p.Config.SafeDirectory))
 		if p.Config.UseSSH {
 			// If env var PLUGIN_USE_SSH is set to true, use SSH instead of HTTPS
-			cmds = append(cmds, remote(p.Repo.CloneSSH))
+			if p.Config.SSHPrivKeyRaw != "" {
+				// If env var PLUGIN_SSH_PRIV_KEY_RAW is set, use it as the SSH private key
+				cmds = append(cmds, loadSSHKeys(p.Config.SSHPrivKeyRaw, "private.key"))
+			}
+			if p.Config.SSHPubKeyRaw != "" {
+				// If env var PLUGIN_SSH_PUB_KEY_RAW is set, use it as the SSH public key
+				cmds = append(cmds, loadSSHKeys(p.Config.SSHPubKeyRaw, "public,key"))
+			}
+			if p.Config.SSHHostKeyRaw != "" {
+				// If env var PLUGIN_SSH_HOST_PUB_KEY_RAW is set, use it in the known_hosts file
+				cmds = append(cmds, loadSSHKnownHosts(p.Config.SSHHostKeyRaw))
+			}
 			if p.Config.SSHKey != "" {
 				// If env var PLUGIN_SSH_KEY is set, use it as the SSH key
 				cmds = append(cmds, sshKeyHandler(p.Config.SSHKey))
 			}
+			cmds = append(cmds, remote(p.Repo.CloneSSH))
 		} else {
 			cmds = append(cmds, remote(p.Repo.Clone))
 		}
@@ -383,4 +395,31 @@ func setHome(home string) error {
 	defaultEnvVars = append(defaultEnvVars, "HOME="+home)
 
 	return nil
+}
+
+func loadSSHKeys(data, filename string) error {
+	dirname := "/root/.ssh"
+	err := os.MkdirAll(dirname, 0600)
+	if err != nil {
+		return err
+	}
+	err := os.WriteFile(filepath.Join(dirname, filename), []byte(data), 0600)
+	if err != nil {
+		return err
+	}
+        return nil
+}
+
+func loadSSHKnownHosts(data string) error {
+	filename := "/etc/ssh/ssh_known_hosts"
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err := f.WriteString(data)
+	if err != nil {
+		return err
+	}
+        return nil
 }

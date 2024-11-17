@@ -43,6 +43,9 @@ type (
 		SafeDirectory    string
 		UseSSH           bool
 		SSHKey           string
+		SSHPrivKeyRaw    string
+		SSHPubKeyRaw     string
+		SSHHostKeyRaw    string
 	}
 
 	Backoff struct {

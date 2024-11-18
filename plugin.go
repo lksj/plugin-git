@@ -23,6 +23,13 @@ type Plugin struct {
 
 const customCertTmpPath = "/tmp/customCert.pem"
 
+const sshSystemKnownHostsFile = "/etc/ssh/ssh_known_hosts"
+const sshKeysDir = "/root/.ssh"
+const sshPrivateKeyBasename = "private.key"
+const sshPublicKeyBasename = "public.key"
+var sshPrivateKeyFile = filepath.Join(sshKeysDir, sshPrivateKeyBasename)
+var sshPublicKeyFile = filepath.Join(sshKeysDir, sshPublicKeyBasename)
+
 var defaultEnvVars = []string{
 	// do not set GIT_TERMINAL_PROMPT=0, otherwise git won't load credentials from ".netrc"
 	"GIT_LFS_SKIP_SMUDGE=1", // prevents git-lfs from retrieving any LFS files
@@ -73,15 +80,19 @@ func (p Plugin) Exec() error {
 		cmds = append(cmds, safeDirectory(p.Config.SafeDirectory))
 		if p.Config.UseSSH {
 			// If env var PLUGIN_USE_SSH is set to true, use SSH instead of HTTPS
+                        // Create directory for ssh keys
+                        if err := createSSHKeysDir(); err != nil {
+                                return err
+                        }
 			if p.Config.SSHPrivKeyRaw != "" {
 				// If env var PLUGIN_SSH_PRIV_KEY_RAW is set, use it as the SSH private key
-				if err := loadSSHKeys(p.Config.SSHPrivKeyRaw, "private.key"); err != nil {
+				if err := loadSSHKeys(p.Config.SSHPrivKeyRaw, sshPrivateKeyBasename); err != nil {
 					return err
 				}
 			}
 			if p.Config.SSHPubKeyRaw != "" {
 				// If env var PLUGIN_SSH_PUB_KEY_RAW is set, use it as the SSH public key
-				if err := loadSSHKeys(p.Config.SSHPrivKeyRaw, "public.key"); err != nil {
+				if err := loadSSHKeys(p.Config.SSHPrivKeyRaw, sshPrivateKeyBasename); err != nil {
 					return err
 				}
 			}
@@ -94,7 +105,10 @@ func (p Plugin) Exec() error {
 			if p.Config.SSHKey != "" {
 				// If env var PLUGIN_SSH_KEY is set, use it as the SSH key
 				cmds = append(cmds, sshKeyHandler(p.Config.SSHKey))
-			}
+			} else {
+
+				cmds = append(cmds, sshKeyHandler(sshPrivateKeyFile))
+                        }
 			cmds = append(cmds, remote(p.Repo.CloneSSH))
 		} else {
 			cmds = append(cmds, remote(p.Repo.Clone))
@@ -403,13 +417,17 @@ func setHome(home string) error {
 	return nil
 }
 
-func loadSSHKeys(data, filename string) error {
-	dirname := "/root/.ssh"
+func createSSHKeysDir() error {
+	dirname := sshKeysDir
 	err := os.MkdirAll(dirname, 0600)
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(filepath.Join(dirname, filename), []byte(data), 0600)
+        return nil
+}
+
+func loadSSHKeys(data, filename string) error {
+	err := os.WriteFile(filepath.Join(sshKeysDir, filename), []byte(data), 0600)
 	if err != nil {
 		return err
 	}
@@ -417,8 +435,7 @@ func loadSSHKeys(data, filename string) error {
 }
 
 func loadSSHKnownHosts(data string) error {
-	filename := "/etc/ssh/ssh_known_hosts"
-	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(sshSystemKnownHostsFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
